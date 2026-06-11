@@ -7,12 +7,14 @@
 #define jbroot(path) path
 #endif
 
-@interface SurgeCCDirect : CCUIToggleModule
+@interface SurgeCCDirect : CCUIToggleModule {
+    BOOL _isActuallySelected;
+    NSTimeInterval _lastFetchTime;
+}
 @end
 
 @implementation SurgeCCDirect
 
-// 获取动态配置文件的绝对路径 (兼容 Rootless/Roothide)
 - (NSString *)getRealPrefsPath {
     NSString *basePath = @"/var/mobile/Library/Preferences/com.crctdd.surgectl.plist";
 #if __has_include(<roothide.h>)
@@ -25,7 +27,6 @@
 #endif
 }
 
-// 获取具体设置值 (带默认值 fallback)
 - (NSString *)getSetting:(NSString *)key fallback:(NSString *)fallback {
     NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:[self getRealPrefsPath]];
     if (prefs && prefs[key] && ![prefs[key] isEqual:@""]) {
@@ -34,48 +35,88 @@
     return fallback;
 }
 
-// 终极图标绝对居中渲染模块
 - (UIImage *)centeredImageWithSymbolName:(NSString *)name {
     UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:26 weight:UIImageSymbolWeightMedium];
     UIImage *sysImage = [UIImage systemImageNamed:name withConfiguration:config];
     if (!sysImage) return nil;
-    
     CGSize canvasSize = CGSizeMake(50.0, 50.0);
     UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:canvasSize];
-    UIImage *centeredImage = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull context) {
+    return [[renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull context) {
         CGSize imgSize = sysImage.size;
         CGRect rect = CGRectMake((canvasSize.width - imgSize.width) / 2.0, (canvasSize.height - imgSize.height) / 2.0, imgSize.width, imgSize.height);
         [sysImage drawInRect:rect];
-    }];
-    return [centeredImage imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+    }] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 }
 
-// ★ 更新了直连专属图标
 - (UIImage *)iconGlyph { return [self centeredImageWithSymbolName:@"arrow.right.and.line.vertical.and.arrow.left"]; }
 - (UIColor *)selectedColor { return [UIColor systemGreenColor]; }
-- (BOOL)isSelected { return NO; }
 
-// 用户点击控制中心按钮时触发
-- (void)setSelected:(BOOL)selected {
-    [super setSelected:selected];
+// 核心：控制中心每次需要渲染 UI 时都会询问此方法
+- (BOOL)isSelected {
+    [self fetchCurrentStateAsynchronously];
+    return _isActuallySelected;
+}
+
+// 异步静默拉取 Surge 真实状态 (带防抖动保护)
+- (void)fetchCurrentStateAsynchronously {
+    NSTimeInterval now = [[NSDate date] timeIntervalSince1970];
+    if (now - _lastFetchTime < 1.5) return; // 1.5秒冷却，防止下拉时疯狂发请求
+    _lastFetchTime = now;
     
-    // 动态读取设置面板的端口和密码
     NSString *port = [self getSetting:@"port" fallback:@"1836"];
     NSString *key = [self getSetting:@"key" fallback:@"crctdd"];
     NSString *urlString = [NSString stringWithFormat:@"http://127.0.0.1:%@/v1/outbound", port];
-    
     NSURL *url = [NSURL URLWithString:urlString];
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+    if (!url) return;
+    
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:2.0];
+    request.HTTPMethod = @"GET";
+    [request setValue:key forHTTPHeaderField:@"X-Key"];
+    
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (error || !data) return; // 熔断：网络错误或无数据
+        
+        NSError *jsonError;
+        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
+        if (jsonError || !json || !json[@"mode"]) return; // 熔断：防崩溃，数据不规范
+        
+        NSString *currentMode = [[NSString stringWithFormat:@"%@", json[@"mode"]] lowercaseString];
+        BOOL newState = [currentMode isEqualToString:@"direct"]; // 判断当前是否为直连
+        
+        // 只有当状态真的发生改变时，才去主线程强制刷新 UI
+        if (self->_isActuallySelected != newState) {
+            self->_isActuallySelected = newState;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self refreshState]; // 通知 CC 框架重新调用 isSelected 刷新界面
+            });
+        }
+    }];
+    [task resume];
+}
+
+// 用户点击控制中心按钮时触发
+- (void)setSelected:(BOOL)selected {
+    // 乐观式 UI：无论请求是否发出去，先让按钮亮起，给用户极速的交互体验
+    _isActuallySelected = YES;
+    [self refreshState];
+    
+    NSString *port = [self getSetting:@"port" fallback:@"1836"];
+    NSString *key = [self getSetting:@"key" fallback:@"crctdd"];
+    NSString *urlString = [NSString stringWithFormat:@"http://127.0.0.1:%@/v1/outbound", port];
+    NSURL *url = [NSURL URLWithString:urlString];
+    if (!url) return;
+    
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:3.0];
     request.HTTPMethod = @"POST";
     [request setValue:key forHTTPHeaderField:@"X-Key"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
     NSDictionary *body = @{@"mode": @"direct"};
     request.HTTPBody = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
     
-    NSURLSessionTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [super setSelected:NO]; // 请求发送完毕后恢复按钮默认状态
-        });
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        // 请求发送完毕后，清空冷却时间，立刻再拉取一次最新状态进行核对纠错
+        self->_lastFetchTime = 0;
+        [self fetchCurrentStateAsynchronously];
     }];
     [task resume];
 }
