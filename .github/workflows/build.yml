@@ -1,7 +1,7 @@
 name: Build SurgeCTL (All Jailbreaks)
 
 on:
- 
+  
   workflow_dispatch: # 允许手动在网页端点击触发
 
 jobs:
@@ -25,6 +25,8 @@ jobs:
 
       - name: Setup iOS SDK
         run: |
+          # 核心修复：先删除 Theos 默认生成的空文件夹，再进行克隆
+          rm -rf theos/sdks
           git clone https://github.com/theos/sdks.git theos/sdks
 
       - name: Build All Schemes (Rootful, Rootless, Roothide)
@@ -32,7 +34,6 @@ jobs:
           export THEOS=${{ github.workspace }}/theos
           
           echo ">>> 正在修复维护者脚本换行符与权限 (防止静默失效)..."
-          # 检查文件是否存在，防止因为你没创建 postinst 而报错中断
           if [ -f postinst ]; then perl -pi -e 's/\r$//' postinst 2>/dev/null || true; chmod 0755 postinst 2>/dev/null || true; fi
           if [ -f postrm ]; then perl -pi -e 's/\r$//' postrm 2>/dev/null || true; chmod 0755 postrm 2>/dev/null || true; fi
 
