@@ -1,73 +1,46 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>items</key>
-    <array>
-        <dict>
-            <key>cell</key>
-            <string>PSGroupSpecifier</string>
-            <key>label</key>
-            <string>API 设置</string>
-        </dict>
-        <dict>
-            <key>cell</key>
-            <string>PSEditTextCell</string>
-            <key>defaults</key>
-            <string>com.crctdd.surgectl</string>
-            <key>key</key>
-            <string>port</string>
-            <key>label</key>
-            <string>端口</string>
-            <key>default</key>
-            <string>1836</string>
-            <key>keyboard</key>
-            <string>numbersAndPunctuation</string>
-        </dict>
-        <dict>
-            <key>cell</key>
-            <string>PSEditTextCell</string>
-            <key>defaults</key>
-            <string>com.crctdd.surgectl</string>
-            <key>key</key>
-            <string>key</string>
-            <key>label</key>
-            <string>密码</string>
-            <key>default</key>
-            <string>crctdd</string>
-            <key>isSecureTextEntry</key>
-            <true/>
-        </dict>
+#import <Preferences/PSListController.h>
+#import <Preferences/PSSpecifier.h>
 
-        <dict>
-            <key>cell</key>
-            <string>PSGroupSpecifier</string>
-            <key>label</key>
-            <string>使用说明</string>
-            <key>footerText</key>
-            <string>Surge - 主页底部(更多设置) - 远程控制 - HTTP API &amp; Web 面板
-打开HTTP API
-端口：4～5位数(可默认)
-密码：随便填(最好都是小写字母)
+@interface SurgePrefsRootListController : PSListController
+@end
 
-或者
-编辑模式手动输入
-[General]
-http-api = 密码@127.0.0.1:端口
+@implementation SurgePrefsRootListController
 
-设置好了后，在上面填入。
+- (NSArray *)specifiers {
+    if (!_specifiers) {
+        _specifiers = [self loadSpecifiersFromPlistName:@"Root" target:self];
+    }
+    return _specifiers;
+}
 
-↓↓↓
+// 视图加载时，在右上角添加保存按钮
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    UIBarButtonItem *saveButton = [[UIBarButtonItem alloc] initWithTitle:@"确认"
+                                                                   style:UIBarButtonItemStyleDone
+                                                                  target:self
+                                                                  action:@selector(saveSettingsTapped)];
+    self.navigationItem.rightBarButtonItem = saveButton;
+}
 
-使用方法：
-使用终端输入命令(仅输入英文)
-surgectl direct   切换直连模式
-surgectl rule   切换规则模式
-surgectl proxy   切换全局代理
-surgectl status   查看当前模式</string>
-        </dict>
-    </array>
-    <key>title</key>
-    <string>Surge 配置</string>
-</dict>
-</plist>
+// 用户点击确认按钮后的逻辑
+- (void)saveSettingsTapped {
+    // 1. 强制收起键盘，触发系统底层将输入的文字立即写入 Plist 文件
+    [self.view endEditing:YES];
+    
+    // 2. 弹窗 UI 反馈
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"保存成功"
+                                                                   message:@"配置已保存，您可以直接使用控制中心组件或终端命令了。"
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    
+    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"好的"
+                                                       style:UIAlertActionStyleDefault
+                                                     handler:nil];
+    [alert addAction:okAction];
+    
+    // 显示弹窗
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+@end
