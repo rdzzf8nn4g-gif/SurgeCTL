@@ -47,7 +47,8 @@
     return [centeredImage imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 }
 
-- (UIImage *)iconGlyph { return [self centeredImageWithSymbolName:@"globe"]; }
+// ★ 更新了全局专属图标
+- (UIImage *)iconGlyph { return [self centeredImageWithSymbolName:@"arrow.triangle.capsulepath"]; }
 - (UIColor *)selectedColor { return [UIColor systemRedColor]; }
 - (BOOL)isSelected { return NO; }
 
@@ -63,7 +64,7 @@
     request.HTTPMethod = @"POST";
     [request setValue:key forHTTPHeaderField:@"X-Key"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    NSDictionary *body = @{@"mode": @"proxy"}; // 全局参数
+    NSDictionary *body = @{@"mode": @"proxy"};
     request.HTTPBody = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
     
     NSURLSessionTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
