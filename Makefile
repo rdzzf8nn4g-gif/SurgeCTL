@@ -1,17 +1,23 @@
+# ================= 修复 GitHub Actions (Xcode 15+) 编译问题 =================
+# 1. 强制使用经典链接器，修复 "multiply defined is obsolete" 警告
+export TARGET_LDFLAGS = -Wl,-ld_classic
+# 2. 显式指定私有框架搜索路径，防止 "framework not found"
+export ADDITIONAL_CFLAGS = -F$(SYSROOT)/System/Library/PrivateFrameworks
+export ADDITIONAL_LDFLAGS = -F$(SYSROOT)/System/Library/PrivateFrameworks
+
 # ================= 生产环境与版本配置 =================
 DEBUG = 0
 FINALPACKAGE = 1
-PACKAGE_VERSION = 0.0.2
+PACKAGE_VERSION = 0.0.3
 
 # ================= 编译目标与架构 =================
-TARGET := iphone:clang:latest:14.0
+# 必须显式指定为 14.5 或 16.5，强制使用 Theos 下载的完整版 SDK
+TARGET := iphone:clang:14.5:14.0
 ARCHS = arm64 arm64e
-# 安装完成后自动重启 SpringBoard，使控制中心组件立即生效
 INSTALL_TARGET_PROCESSES = SpringBoard
 
 include $(THEOS)/makefiles/common.mk
 
-# ================= 声明要同时编译的 3 个组件 =================
 BUNDLE_NAME = SurgeCCDirect SurgeCCRule SurgeCCProxy
 
 # ----------------- 1. 直连模块 (Direct) -----------------
@@ -44,6 +50,6 @@ SurgeCCProxy_RESOURCE_DIRS = ResourcesProxy
 include $(THEOS_MAKE_PATH)/bundle.mk
 
 # ================= 打包后处理脚本 =================
-# 自动寻找并赋予 surgectl 命令行脚本执行权限 (完美兼容 Rootless/Roothide 路径)
+# 自动寻找并赋予 surgectl 命令行脚本执行权限
 after-stage::
 	find $(THEOS_STAGING_DIR) -type f -name "surgectl" -exec chmod 755 {} +
