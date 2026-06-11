@@ -1,24 +1,22 @@
-# ================= 修复 GitHub Actions (Xcode 15+) 编译问题 =================
-# 1. 强制使用经典链接器，修复 "multiply defined is obsolete" 警告
+# ================= 修复 GitHub Actions 编译问题 =================
 export TARGET_LDFLAGS = -Wl,-ld_classic
-# 2. 显式指定私有框架搜索路径，防止 "framework not found"
 export ADDITIONAL_CFLAGS = -F$(SYSROOT)/System/Library/PrivateFrameworks
 export ADDITIONAL_LDFLAGS = -F$(SYSROOT)/System/Library/PrivateFrameworks
 
 # ================= 生产环境与版本配置 =================
 DEBUG = 0
 FINALPACKAGE = 1
-PACKAGE_VERSION = 0.0.3
+PACKAGE_VERSION = 0.0.4
 
 # ================= 编译目标与架构 =================
-# 必须显式指定为 14.5 或 16.5，强制使用 Theos 下载的完整版 SDK
 TARGET := iphone:clang:14.5:14.0
 ARCHS = arm64 arm64e
-INSTALL_TARGET_PROCESSES = SpringBoard
+INSTALL_TARGET_PROCESSES = SpringBoard Preferences
 
 include $(THEOS)/makefiles/common.mk
 
-BUNDLE_NAME = SurgeCCDirect SurgeCCRule SurgeCCProxy
+# ================= 声明要同时编译的 4 个组件 =================
+BUNDLE_NAME = SurgeCCDirect SurgeCCRule SurgeCCProxy SurgePrefs
 
 # ----------------- 1. 直连模块 (Direct) -----------------
 SurgeCCDirect_BUNDLE_EXTENSION = bundle
@@ -47,9 +45,17 @@ SurgeCCProxy_PRIVATE_FRAMEWORKS = ControlCenterUIKit
 SurgeCCProxy_CFLAGS = -fobjc-arc
 SurgeCCProxy_RESOURCE_DIRS = ResourcesProxy
 
+# ----------------- 4. 新增：系统设置面板模块 (Preferences) -----------------
+SurgePrefs_BUNDLE_EXTENSION = bundle
+SurgePrefs_FILES = SurgePrefsRootListController.m
+SurgePrefs_INSTALL_PATH = /Library/PreferenceBundles
+SurgePrefs_FRAMEWORKS = Foundation UIKit
+SurgePrefs_PRIVATE_FRAMEWORKS = Preferences
+SurgePrefs_CFLAGS = -fobjc-arc
+SurgePrefs_RESOURCE_DIRS = ResourcesPrefs
+
 include $(THEOS_MAKE_PATH)/bundle.mk
 
 # ================= 打包后处理脚本 =================
-# 自动寻找并赋予 surgectl 命令行脚本执行权限
 after-stage::
 	find $(THEOS_STAGING_DIR) -type f -name "surgectl" -exec chmod 755 {} +
