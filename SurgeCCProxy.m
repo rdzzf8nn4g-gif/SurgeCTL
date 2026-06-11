@@ -100,7 +100,7 @@ static void ProxyTurnOffCallback(CFNotificationCenterRef center, void *observer,
     _isActuallySelected = YES;
     [self refreshState];
     
-
+    _lastFetchTime = [[NSDate date] timeIntervalSince1970] + 2.0;
     CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR("com.crctdd.surgectl.selectProxy"), NULL, NULL, YES);
     
     NSString *port = [self getSetting:@"port" fallback:@"1836"];
@@ -113,7 +113,10 @@ static void ProxyTurnOffCallback(CFNotificationCenterRef center, void *observer,
     request.HTTPBody = [NSJSONSerialization dataWithJSONObject:@{@"mode": @"proxy"} options:0 error:nil];
     
     [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        self->_lastFetchTime = 0;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            self->_lastFetchTime = 0;
+            [self fetchCurrentStateAsynchronously];
+        });
     }] resume];
 }
 @end
