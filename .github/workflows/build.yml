@@ -1,7 +1,10 @@
 name: Build SurgeCTL (All Jailbreaks)
 
 on:
-  
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch: # 允许手动在网页端点击触发
 
 jobs:
@@ -16,16 +19,16 @@ jobs:
         run: |
           brew install ldid dpkg xz
 
-      - name: Setup Theos
+      - name: Setup Theos (Roothide Fork)
         uses: actions/checkout@v4
         with:
-          repository: theos/theos
+          # 【核心修改】：使用 Roothide 官方的 Theos 分支，自带 roothide scheme
+          repository: roothide/theos
           path: theos
           submodules: recursive
 
       - name: Setup iOS SDK
         run: |
-          # 核心修复：先删除 Theos 默认生成的空文件夹，再进行克隆
           rm -rf theos/sdks
           git clone https://github.com/theos/sdks.git theos/sdks
 
