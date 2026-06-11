@@ -1,18 +1,32 @@
 #!/bin/sh
-API="http://127.0.0.1:1836/v1/outbound"
-KEY="crctdd"
+
+# 1. 动态读取设置面板的配置 (如果读取不到，则使用默认值)
+PREFS_DOMAIN="com.crctdd.surgectl"
+
+# 屏蔽报错并去除可能的引号
+PORT=$(defaults read "$PREFS_DOMAIN" port 2>/dev/null | tr -d '"')
+KEY=$(defaults read "$PREFS_DOMAIN" key 2>/dev/null | tr -d '"')
+
+# 2. 空值处理 (Fallback 默认值)
+[ -z "$PORT" ] && PORT="1836"
+[ -z "$KEY" ] && KEY="crctdd"
+
+API="http://127.0.0.1:${PORT}/v1/outbound"
+
 set_mode() {
     MODE="$1"
     RESPONSE=$(curl -s -X POST "$API" \
     -H "X-Key: $KEY" \
     -H "Content-Type: application/json" \
     -d "{\"mode\":\"$MODE\"}")
-    echo "Surge switched to $MODE"
+    echo "Surge switched to $MODE (Port: $PORT)"
 }
+
 get_status() {
     curl -s "$API" \
     -H "X-Key: $KEY"
 }
+
 case "$1" in
     direct)
         set_mode "direct"
