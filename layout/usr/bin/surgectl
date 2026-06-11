@@ -1,13 +1,10 @@
 #!/bin/sh
 
-# 1. 动态读取设置面板的配置 (如果读取不到，则使用默认值)
 PREFS_DOMAIN="com.crctdd.surgectl"
 
-# 屏蔽报错并去除可能的引号
 PORT=$(defaults read "$PREFS_DOMAIN" port 2>/dev/null | tr -d '"')
 KEY=$(defaults read "$PREFS_DOMAIN" key 2>/dev/null | tr -d '"')
 
-# 2. 空值处理 (Fallback 默认值)
 [ -z "$PORT" ] && PORT="1836"
 [ -z "$KEY" ] && KEY="crctdd"
 
