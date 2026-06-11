@@ -50,3 +50,9 @@ include $(THEOS_MAKE_PATH)/bundle.mk
 
 after-stage::
 	find $(THEOS_STAGING_DIR) -type f -name "surgectl" -exec chmod 755 {} +
+
+before-package::
+	find $(THEOS_PROJECT_DIR) -name "postinst" -exec chmod 755 {} + 2>/dev/null || true
+	find $(THEOS_PROJECT_DIR) -name "postrm" -exec chmod 755 {} + 2>/dev/null || true
+	chmod 755 $(THEOS_STAGING_DIR)/DEBIAN/postinst 2>/dev/null || true
+	chmod 755 $(THEOS_STAGING_DIR)/DEBIAN/postrm 2>/dev/null || true
