@@ -2,14 +2,20 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>items</key>
+    <key>Title</key>
+    <string>Surge 配置</string>
+
+    <key>StringsTable</key>
+    <string>Root</string>
+
+    <key>PreferenceSpecifiers</key>
     <array>
         <dict>
-            <key>cell</key>
+            <key>Type</key>
             <string>PSGroupSpecifier</string>
-            <key>label</key>
+            <key>Title</key>
             <string>API 设置</string>
-            <key>footerText</key>
+            <key>FooterText</key>
             <string>使用说明：
 Surge - 主页底部(更多设置) - 远程控制 - HTTP API &amp; Web 面板
 打开HTTP API
@@ -30,47 +36,47 @@ surgectl rule     切换规则模式
 surgectl proxy    切换全局代理
 surgectl status   查看当前模式</string>
         </dict>
-        
+
         <dict>
-            <key>cell</key>
-            <string>PSEditTextCell</string>
-            <key>defaults</key>
-            <string>com.crctdd.surgectl</string>
-            <key>key</key>
-            <string>port</string>
-            <key>label</key>
+            <key>Type</key>
+            <string>PSTextFieldSpecifier</string>
+            <key>Title</key>
             <string>端口</string>
-            <key>default</key>
+            <key>Key</key>
+            <string>port</string>
+            <key>DefaultValue</key>
             <string>1836</string>
-            <key>keyboard</key>
-            <string>numbersAndPunctuation</string>
-        </dict>
-        
-        <dict>
-            <key>cell</key>
-            <string>PSEditTextCell</string>
-            <key>defaults</key>
-            <string>com.crctdd.surgectl</string>
-            <key>key</key>
-            <string>key</string>
-            <key>label</key>
-            <string>密码</string>
-            <key>default</key>
-            <string>crctdd</string>
-            <key>isSecureTextEntry</key>
-            <true/>
+            <key>KeyboardType</key>
+            <string>NumbersAndPunctuation</string>
+            <key>AutocapitalizationType</key>
+            <string>None</string>
+            <key>AutocorrectionType</key>
+            <string>No</string>
         </dict>
 
         <dict>
-            <key>cell</key>
+            <key>Type</key>
+            <string>PSTextFieldSpecifier</string>
+            <key>Title</key>
+            <string>密码</string>
+            <key>Key</key>
+            <string>key</string>
+            <key>DefaultValue</key>
+            <string>crctdd</string>
+            <key>IsSecure</key>
+            <true/>
+            <key>AutocapitalizationType</key>
+            <string>None</string>
+            <key>AutocorrectionType</key>
+            <string>No</string>
+        </dict>
+
+        <dict>
+            <key>Type</key>
             <string>PSGroupSpecifier</string>
-            <key>footerText</key>
+            <key>FooterText</key>
             <string>Developed by RrrankkK</string>
-            <key>footerAlignment</key>
-            <integer>1</integer>
         </dict>
     </array>
-    <key>title</key>
-    <string>Surge 配置</string>
 </dict>
 </plist>
