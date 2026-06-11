@@ -12,7 +12,7 @@
 
 @implementation SurgeCCDirect
 
-// 获取动态配置文件的绝对路径
+// 获取动态配置文件的绝对路径 (兼容 Rootless/Roothide)
 - (NSString *)getRealPrefsPath {
     NSString *basePath = @"/var/mobile/Library/Preferences/com.crctdd.surgectl.plist";
 #if __has_include(<roothide.h>)
@@ -34,6 +34,7 @@
     return fallback;
 }
 
+// 终极图标绝对居中渲染模块
 - (UIImage *)centeredImageWithSymbolName:(NSString *)name {
     UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:26 weight:UIImageSymbolWeightMedium];
     UIImage *sysImage = [UIImage systemImageNamed:name withConfiguration:config];
@@ -49,14 +50,16 @@
     return [centeredImage imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 }
 
-- (UIImage *)iconGlyph { return [self centeredImageWithSymbolName:@"location.fill"]; }
+// ★ 更新了直连专属图标
+- (UIImage *)iconGlyph { return [self centeredImageWithSymbolName:@"arrow.right.and.line.vertical.and.arrow.left"]; }
 - (UIColor *)selectedColor { return [UIColor systemGreenColor]; }
 - (BOOL)isSelected { return NO; }
 
+// 用户点击控制中心按钮时触发
 - (void)setSelected:(BOOL)selected {
     [super setSelected:selected];
     
-    // 动态读取端口和密码
+    // 动态读取设置面板的端口和密码
     NSString *port = [self getSetting:@"port" fallback:@"1836"];
     NSString *key = [self getSetting:@"key" fallback:@"crctdd"];
     NSString *urlString = [NSString stringWithFormat:@"http://127.0.0.1:%@/v1/outbound", port];
@@ -66,12 +69,12 @@
     request.HTTPMethod = @"POST";
     [request setValue:key forHTTPHeaderField:@"X-Key"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    NSDictionary *body = @{@"mode": @"direct"}; // 直连参数
+    NSDictionary *body = @{@"mode": @"direct"};
     request.HTTPBody = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
     
     NSURLSessionTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            [super setSelected:NO];
+            [super setSelected:NO]; // 请求发送完毕后恢复按钮默认状态
         });
     }];
     [task resume];
