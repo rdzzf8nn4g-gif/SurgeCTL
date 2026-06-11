@@ -4,7 +4,7 @@ export ADDITIONAL_LDFLAGS = -F$(SYSROOT)/System/Library/PrivateFrameworks
 
 DEBUG = 0
 FINALPACKAGE = 1
-PACKAGE_VERSION = 0.0.4
+PACKAGE_VERSION = 0.0.1
 
 TARGET := iphone:clang:14.5:14.0
 ARCHS = arm64 arm64e
