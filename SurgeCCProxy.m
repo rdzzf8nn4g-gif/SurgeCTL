@@ -18,12 +18,21 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(syncStateFromNotification) name:@"SurgeModeSync" object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(syncStateFromNotification:) name:@"SurgeModeSync" object:nil];
     }
     return self;
 }
 
-- (void)syncStateFromNotification {
+- (void)syncStateFromNotification:(NSNotification *)notification {
+    NSString *activatedMode = notification.object;
+    if (activatedMode && ![activatedMode isEqualToString:@"proxy"]) {
+        if (_isActuallySelected) {
+            _isActuallySelected = NO;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self refreshState];
+            });
+        }
+    }
     _lastFetchTime = 0;
     [self fetchCurrentStateAsynchronously];
 }
@@ -107,7 +116,7 @@
     _isActuallySelected = YES;
     [self refreshState];
     
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"SurgeModeSync" object:nil];
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"SurgeModeSync" object:@"proxy"];
     
     NSString *port = [self getSetting:@"port" fallback:@"1836"];
     NSString *key = [self getSetting:@"key" fallback:@"crctdd"];
