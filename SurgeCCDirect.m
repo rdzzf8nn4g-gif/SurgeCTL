@@ -1,12 +1,39 @@
 #import <UIKit/UIKit.h>
 #import <ControlCenterUIKit/CCUIToggleModule.h>
 
+#if __has_include(<roothide.h>)
+#import <roothide.h>
+#else
+#define jbroot(path) path
+#endif
+
 @interface SurgeCCDirect : CCUIToggleModule
 @end
 
 @implementation SurgeCCDirect
 
-// 核心辅助方法：把任意尺寸的 SF Symbol 画死在一个 50x50 的绝对正方形画布正中心
+// 获取动态配置文件的绝对路径
+- (NSString *)getRealPrefsPath {
+    NSString *basePath = @"/var/mobile/Library/Preferences/com.crctdd.surgectl.plist";
+#if __has_include(<roothide.h>)
+    return jbroot(basePath);
+#else
+    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/jb/"]) {
+        return [@"/var/jb" stringByAppendingPathComponent:basePath];
+    }
+    return basePath;
+#endif
+}
+
+// 获取具体设置值 (带默认值 fallback)
+- (NSString *)getSetting:(NSString *)key fallback:(NSString *)fallback {
+    NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:[self getRealPrefsPath]];
+    if (prefs && prefs[key] && ![prefs[key] isEqual:@""]) {
+        return [NSString stringWithFormat:@"%@", prefs[key]];
+    }
+    return fallback;
+}
+
 - (UIImage *)centeredImageWithSymbolName:(NSString *)name {
     UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:26 weight:UIImageSymbolWeightMedium];
     UIImage *sysImage = [UIImage systemImageNamed:name withConfiguration:config];
@@ -16,36 +43,30 @@
     UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:canvasSize];
     UIImage *centeredImage = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull context) {
         CGSize imgSize = sysImage.size;
-        CGRect rect = CGRectMake((canvasSize.width - imgSize.width) / 2.0,
-                                 (canvasSize.height - imgSize.height) / 2.0,
-                                 imgSize.width,
-                                 imgSize.height);
+        CGRect rect = CGRectMake((canvasSize.width - imgSize.width) / 2.0, (canvasSize.height - imgSize.height) / 2.0, imgSize.width, imgSize.height);
         [sysImage drawInRect:rect];
     }];
     return [centeredImage imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 }
 
-- (UIImage *)iconGlyph {
-    return [self centeredImageWithSymbolName:@"location.fill"];
-}
-
-- (UIColor *)selectedColor {
-    return [UIColor systemGreenColor];
-}
-
-- (BOOL)isSelected {
-    return NO;
-}
+- (UIImage *)iconGlyph { return [self centeredImageWithSymbolName:@"location.fill"]; }
+- (UIColor *)selectedColor { return [UIColor systemGreenColor]; }
+- (BOOL)isSelected { return NO; }
 
 - (void)setSelected:(BOOL)selected {
     [super setSelected:selected];
     
-    NSURL *url = [NSURL URLWithString:@"http://127.0.0.1:1836/v1/outbound"];
+    // 动态读取端口和密码
+    NSString *port = [self getSetting:@"port" fallback:@"1836"];
+    NSString *key = [self getSetting:@"key" fallback:@"crctdd"];
+    NSString *urlString = [NSString stringWithFormat:@"http://127.0.0.1:%@/v1/outbound", port];
+    
+    NSURL *url = [NSURL URLWithString:urlString];
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
     request.HTTPMethod = @"POST";
-    [request setValue:@"crctdd" forHTTPHeaderField:@"X-Key"];
+    [request setValue:key forHTTPHeaderField:@"X-Key"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    NSDictionary *body = @{@"mode": @"direct"};
+    NSDictionary *body = @{@"mode": @"direct"}; // 直连参数
     request.HTTPBody = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
     
     NSURLSessionTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
