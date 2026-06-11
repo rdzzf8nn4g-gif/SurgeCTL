@@ -15,6 +15,19 @@
 
 @implementation SurgeCCRule
 
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(syncStateFromNotification) name:@"SurgeModeSync" object:nil];
+    }
+    return self;
+}
+
+- (void)syncStateFromNotification {
+    _lastFetchTime = 0;
+    [self fetchCurrentStateAsynchronously];
+}
+
 - (NSString *)getRealPrefsPath {
     NSString *basePath = @"/var/mobile/Library/Preferences/com.crctdd.surgectl.plist";
 #if __has_include(<roothide.h>)
@@ -58,7 +71,7 @@
 
 - (void)fetchCurrentStateAsynchronously {
     NSTimeInterval now = [[NSDate date] timeIntervalSince1970];
-    if (now - _lastFetchTime < 1.5) return;
+    if (now - _lastFetchTime < 0.5) return;
     _lastFetchTime = now;
     
     NSString *port = [self getSetting:@"port" fallback:@"1836"];
@@ -75,10 +88,10 @@
         if (error || !data) return;
         NSError *jsonError;
         NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        if (jsonError || !json || !json[@"mode"]) return;
+        if (jsonError || ![json isKindOfClass:[NSDictionary class]] || !json[@"mode"]) return;
         
         NSString *currentMode = [[NSString stringWithFormat:@"%@", json[@"mode"]] lowercaseString];
-        BOOL newState = [currentMode isEqualToString:@"rule"]; // 判断当前是否为规则
+        BOOL newState = [currentMode isEqualToString:@"rule"];
         
         if (self->_isActuallySelected != newState) {
             self->_isActuallySelected = newState;
@@ -93,6 +106,8 @@
 - (void)setSelected:(BOOL)selected {
     _isActuallySelected = YES;
     [self refreshState];
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"SurgeModeSync" object:nil];
     
     NSString *port = [self getSetting:@"port" fallback:@"1836"];
     NSString *key = [self getSetting:@"key" fallback:@"crctdd"];
