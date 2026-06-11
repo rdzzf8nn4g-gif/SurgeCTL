@@ -1,10 +1,7 @@
 name: Build SurgeCTL (Rootless)
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  
   workflow_dispatch: # 允许在 GitHub Actions 页面手动触发
 
 jobs:
