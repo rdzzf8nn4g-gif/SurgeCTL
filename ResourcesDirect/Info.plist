@@ -1,1 +1,16 @@
-
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.crctdd.surgectl.direct</string>
+    <key>CFBundleName</key>
+    <string>Surge Direct</string>
+    <key>CFBundleDisplayName</key>
+    <string>Surge 直连</string>
+    <key>CFBundleExecutable</key>
+    <string>SurgeCCDirect</string>
+    <key>NSPrincipalClass</key>
+    <string>SurgeCCDirect</string>
+</dict>
+</plist>
