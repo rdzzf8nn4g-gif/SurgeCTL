@@ -43,7 +43,10 @@
             <key>cell</key>
             <string>PSGroupSpecifier</string>
             <key>label</key>
-            <string>使用说明</string>
+            <string></string> <key>footerText</key>
+            <string>Developed by RrrankkK</string>
+            <key>footerAlignment</key>
+            <integer>1</integer>
         </dict>
         <dict>
             <key>cell</key>
@@ -52,15 +55,6 @@
             <string>使用说明</string>
             <key>action</key>
             <string>showInstructions</string>
-        </dict>
-
-        <dict>
-            <key>cell</key>
-            <string>PSGroupSpecifier</string>
-            <key>footerText</key>
-            <string>Developed by RrrankkK</string>
-            <key>footerAlignment</key>
-            <integer>1</integer>
         </dict>
     </array>
     <key>title</key>
