@@ -14,7 +14,6 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    
 
     UIBarButtonItem *saveButton = [[UIBarButtonItem alloc] initWithTitle:@"确认"
                                                                    style:UIBarButtonItemStyleDone
@@ -24,18 +23,17 @@
 }
 
 - (void)saveSettingsTapped {
-   
     [self.view endEditing:YES];
-    
+
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"保存成功"
-                                                                   message:@"配置已保存，您可以直接使用控制中心组件或终端命令了。"
+                                                                   message:@"保存成功"
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    
+
     UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"好的"
                                                        style:UIAlertActionStyleDefault
                                                      handler:nil];
     [alert addAction:okAction];
-    
+
     [self presentViewController:alert animated:YES completion:nil];
 }
 
