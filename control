@@ -1,6 +1,6 @@
 Package: com.crctdd.surgectl
 Name: SurgeCTL
-Version: 0.0.2
+Version: 0.0.1
 Architecture: iphoneos-arm
 Description: 终端切换Surge流量模式并附带控制中心组件。终端使用: surgectl [direct|rule|proxy|status]。控制中心: 在设置中添加对应按钮。
 Maintainer: RrrankkK
