@@ -1,8 +1,8 @@
-name: Build SurgeCTL (Rootless)
+name: Build SurgeCTL (All Jailbreaks)
 
 on:
-  
-  workflow_dispatch: # 允许在 GitHub Actions 页面手动触发
+ 
+  workflow_dispatch: # 允许手动在网页端点击触发
 
 jobs:
   build:
@@ -27,13 +27,31 @@ jobs:
         run: |
           git clone https://github.com/theos/sdks.git theos/sdks
 
-      - name: Build Package
+      - name: Build All Schemes (Rootful, Rootless, Roothide)
         run: |
           export THEOS=${{ github.workspace }}/theos
+          
+          echo ">>> 正在修复维护者脚本换行符与权限 (防止静默失效)..."
+          # 检查文件是否存在，防止因为你没创建 postinst 而报错中断
+          if [ -f postinst ]; then perl -pi -e 's/\r$//' postinst 2>/dev/null || true; chmod 0755 postinst 2>/dev/null || true; fi
+          if [ -f postrm ]; then perl -pi -e 's/\r$//' postrm 2>/dev/null || true; chmod 0755 postrm 2>/dev/null || true; fi
+
+          echo ">>> 清理旧文件..."
+          make clean
+
+          echo ">>> 正在编译 Rootful (有根) 版本..."
+          make package
+
+          echo ">>> 正在编译 Rootless (无根) 版本..."
           make package THEOS_PACKAGE_SCHEME=rootless
 
-      - name: Upload Artifact
+          echo ">>> 正在编译 Roothide (隐藏越狱) 版本..."
+          make package THEOS_PACKAGE_SCHEME=roothide
+
+          echo ">>> 编译完成！所有版本已生成。"
+
+      - name: Upload DEB Packages
         uses: actions/upload-artifact@v4
         with:
-          name: SurgeCTL-Rootless-DEB
+          name: SurgeCTL-All-Jailbreaks
           path: packages/*.deb
