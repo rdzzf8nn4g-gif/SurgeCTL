@@ -15,17 +15,25 @@
 
 @implementation SurgeCCDirect
 
-// 核心：监听其他按钮发出的切换广播
 - (instancetype)init {
     self = [super init];
     if (self) {
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(syncStateFromNotification) name:@"SurgeModeSync" object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(syncStateFromNotification:) name:@"SurgeModeSync" object:nil];
     }
     return self;
 }
 
-- (void)syncStateFromNotification {
-    _lastFetchTime = 0; // 清除冷却时间，强制重新向 Surge 请求真实状态
+- (void)syncStateFromNotification:(NSNotification *)notification {
+    NSString *activatedMode = notification.object;
+    if (activatedMode && ![activatedMode isEqualToString:@"direct"]) {
+        if (_isActuallySelected) {
+            _isActuallySelected = NO;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self refreshState];
+            });
+        }
+    }
+    _lastFetchTime = 0;
     [self fetchCurrentStateAsynchronously];
 }
 
@@ -62,7 +70,6 @@
     }] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 }
 
-// 修复了不显示的图标，改为高度兼容的纸飞机图标 (代表直达)
 - (UIImage *)iconGlyph { return [self centeredImageWithSymbolName:@"paperplane.fill"]; }
 - (UIColor *)selectedColor { return [UIColor systemGreenColor]; }
 
@@ -71,10 +78,9 @@
     return _isActuallySelected;
 }
 
-// 极其严格的 API 状态校验
 - (void)fetchCurrentStateAsynchronously {
     NSTimeInterval now = [[NSDate date] timeIntervalSince1970];
-    if (now - _lastFetchTime < 0.5) return; // 0.5秒极速冷却
+    if (now - _lastFetchTime < 0.5) return;
     _lastFetchTime = now;
     
     NSString *port = [self getSetting:@"port" fallback:@"1836"];
@@ -91,7 +97,6 @@
         if (error || !data) return;
         NSError *jsonError;
         NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        // 严格防崩溃熔断：确保返回的是字典，且包含 mode 字段
         if (jsonError || ![json isKindOfClass:[NSDictionary class]] || !json[@"mode"]) return;
         
         NSString *currentMode = [[NSString stringWithFormat:@"%@", json[@"mode"]] lowercaseString];
@@ -111,8 +116,7 @@
     _isActuallySelected = YES;
     [self refreshState];
     
-    // 乐观 UI 后，立刻发出系统广播，让其他两个按钮马上熄灭
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"SurgeModeSync" object:nil];
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"SurgeModeSync" object:@"direct"];
     
     NSString *port = [self getSetting:@"port" fallback:@"1836"];
     NSString *key = [self getSetting:@"key" fallback:@"crctdd"];
@@ -129,7 +133,7 @@
     
     NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         self->_lastFetchTime = 0;
-        [self fetchCurrentStateAsynchronously]; // 请求成功后，最后确认一次真实状态
+        [self fetchCurrentStateAsynchronously];
     }];
     [task resume];
 }
