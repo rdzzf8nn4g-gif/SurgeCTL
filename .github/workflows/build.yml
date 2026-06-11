@@ -1,0 +1,42 @@
+name: Build SurgeCTL (Rootless)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # 允许在 GitHub Actions 页面手动触发
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          brew install ldid dpkg xz
+
+      - name: Setup Theos
+        uses: actions/checkout@v4
+        with:
+          repository: theos/theos
+          path: theos
+          submodules: recursive
+
+      - name: Setup iOS SDK
+        run: |
+          git clone https://github.com/theos/sdks.git theos/sdks
+
+      - name: Build Package
+        run: |
+          export THEOS=${{ github.workspace }}/theos
+          make package THEOS_PACKAGE_SCHEME=rootless
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SurgeCTL-Rootless-DEB
+          path: packages/*.deb
