@@ -47,7 +47,8 @@
     return [centeredImage imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 }
 
-- (UIImage *)iconGlyph { return [self centeredImageWithSymbolName:@"doc.text.fill"]; }
+// ★ 更新了规则专属图标
+- (UIImage *)iconGlyph { return [self centeredImageWithSymbolName:@"arrow.left.arrow.right"]; }
 - (UIColor *)selectedColor { return [UIColor systemYellowColor]; }
 - (BOOL)isSelected { return NO; }
 
@@ -63,7 +64,7 @@
     request.HTTPMethod = @"POST";
     [request setValue:key forHTTPHeaderField:@"X-Key"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    NSDictionary *body = @{@"mode": @"rule"}; // 规则参数
+    NSDictionary *body = @{@"mode": @"rule"};
     request.HTTPBody = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
     
     NSURLSessionTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
