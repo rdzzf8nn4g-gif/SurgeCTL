@@ -26,7 +26,7 @@
 }
 
 - (UIImage *)iconGlyph {
-    return [self centeredImageWithSymbolName:@"location.fill"]; // 直连图标
+    return [self centeredImageWithSymbolName:@"location.fill"];
 }
 
 - (UIColor *)selectedColor {
@@ -34,13 +34,12 @@
 }
 
 - (BOOL)isSelected {
-    return NO; // 触发器模式，不保持常亮状态
+    return NO;
 }
 
 - (void)setSelected:(BOOL)selected {
     [super setSelected:selected];
     
-    // 异步发送请求，防止卡死 SpringBoard
     NSURL *url = [NSURL URLWithString:@"http://127.0.0.1:1836/v1/outbound"];
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
     request.HTTPMethod = @"POST";
@@ -51,7 +50,7 @@
     
     NSURLSessionTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            [super setSelected:NO]; // 请求发送完毕后恢复按钮默认状态
+            [super setSelected:NO];
         });
     }];
     [task resume];
