@@ -1,1 +1,40 @@
-1
+#!/bin/sh
+API="http://127.0.0.1:1836/v1/outbound"
+KEY="crctdd"
+set_mode() {
+    MODE="$1"
+    RESPONSE=$(curl -s -X POST "$API" \
+    -H "X-Key: $KEY" \
+    -H "Content-Type: application/json" \
+    -d "{\"mode\":\"$MODE\"}")
+    echo "Surge switched to $MODE"
+}
+get_status() {
+    curl -s "$API" \
+    -H "X-Key: $KEY"
+}
+case "$1" in
+    direct)
+        set_mode "direct"
+        ;;
+    rule)
+        set_mode "rule"
+        ;;
+    proxy)
+        set_mode "proxy"
+        ;;
+    status)
+        get_status
+        ;;
+    *)
+        echo ""
+        echo "SurgeCLI Usage:"
+        echo ""
+        echo "  surgectl direct"
+        echo "  surgectl rule"
+        echo "  surgectl proxy"
+        echo "  surgectl status"
+        echo ""
+        exit 1
+        ;;
+esac
