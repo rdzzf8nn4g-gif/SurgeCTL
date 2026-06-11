@@ -1,10 +1,7 @@
 name: Build SurgeCTL (All Jailbreaks)
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  
   workflow_dispatch: # 允许手动在网页端点击触发
 
 jobs:
