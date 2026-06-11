@@ -6,8 +6,26 @@
 
 @implementation SurgeCCProxy
 
+- (UIImage *)centeredImageWithSymbolName:(NSString *)name {
+    UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:26 weight:UIImageSymbolWeightMedium];
+    UIImage *sysImage = [UIImage systemImageNamed:name withConfiguration:config];
+    if (!sysImage) return nil;
+    
+    CGSize canvasSize = CGSizeMake(50.0, 50.0);
+    UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:canvasSize];
+    UIImage *centeredImage = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull context) {
+        CGSize imgSize = sysImage.size;
+        CGRect rect = CGRectMake((canvasSize.width - imgSize.width) / 2.0,
+                                 (canvasSize.height - imgSize.height) / 2.0,
+                                 imgSize.width,
+                                 imgSize.height);
+        [sysImage drawInRect:rect];
+    }];
+    return [centeredImage imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+}
+
 - (UIImage *)iconGlyph {
-    return [UIImage systemImageNamed:@"globe"];
+    return [self centeredImageWithSymbolName:@"globe"];
 }
 
 - (UIColor *)selectedColor {
