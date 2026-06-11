@@ -15,6 +15,20 @@
 
 @implementation SurgeCCDirect
 
+// 核心：监听其他按钮发出的切换广播
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(syncStateFromNotification) name:@"SurgeModeSync" object:nil];
+    }
+    return self;
+}
+
+- (void)syncStateFromNotification {
+    _lastFetchTime = 0; // 清除冷却时间，强制重新向 Surge 请求真实状态
+    [self fetchCurrentStateAsynchronously];
+}
+
 - (NSString *)getRealPrefsPath {
     NSString *basePath = @"/var/mobile/Library/Preferences/com.crctdd.surgectl.plist";
 #if __has_include(<roothide.h>)
@@ -48,19 +62,19 @@
     }] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 }
 
-- (UIImage *)iconGlyph { return [self centeredImageWithSymbolName:@"arrow.right.and.line.vertical.and.arrow.left"]; }
+// 修复了不显示的图标，改为高度兼容的纸飞机图标 (代表直达)
+- (UIImage *)iconGlyph { return [self centeredImageWithSymbolName:@"paperplane.fill"]; }
 - (UIColor *)selectedColor { return [UIColor systemGreenColor]; }
 
-// 核心：控制中心每次需要渲染 UI 时都会询问此方法
 - (BOOL)isSelected {
     [self fetchCurrentStateAsynchronously];
     return _isActuallySelected;
 }
 
-// 异步静默拉取 Surge 真实状态 (带防抖动保护)
+// 极其严格的 API 状态校验
 - (void)fetchCurrentStateAsynchronously {
     NSTimeInterval now = [[NSDate date] timeIntervalSince1970];
-    if (now - _lastFetchTime < 1.5) return; // 1.5秒冷却，防止下拉时疯狂发请求
+    if (now - _lastFetchTime < 0.5) return; // 0.5秒极速冷却
     _lastFetchTime = now;
     
     NSString *port = [self getSetting:@"port" fallback:@"1836"];
@@ -74,31 +88,31 @@
     [request setValue:key forHTTPHeaderField:@"X-Key"];
     
     NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (error || !data) return; // 熔断：网络错误或无数据
-        
+        if (error || !data) return;
         NSError *jsonError;
         NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        if (jsonError || !json || !json[@"mode"]) return; // 熔断：防崩溃，数据不规范
+        // 严格防崩溃熔断：确保返回的是字典，且包含 mode 字段
+        if (jsonError || ![json isKindOfClass:[NSDictionary class]] || !json[@"mode"]) return;
         
         NSString *currentMode = [[NSString stringWithFormat:@"%@", json[@"mode"]] lowercaseString];
-        BOOL newState = [currentMode isEqualToString:@"direct"]; // 判断当前是否为直连
+        BOOL newState = [currentMode isEqualToString:@"direct"];
         
-        // 只有当状态真的发生改变时，才去主线程强制刷新 UI
         if (self->_isActuallySelected != newState) {
             self->_isActuallySelected = newState;
             dispatch_async(dispatch_get_main_queue(), ^{
-                [self refreshState]; // 通知 CC 框架重新调用 isSelected 刷新界面
+                [self refreshState];
             });
         }
     }];
     [task resume];
 }
 
-// 用户点击控制中心按钮时触发
 - (void)setSelected:(BOOL)selected {
-    // 乐观式 UI：无论请求是否发出去，先让按钮亮起，给用户极速的交互体验
     _isActuallySelected = YES;
     [self refreshState];
+    
+    // 乐观 UI 后，立刻发出系统广播，让其他两个按钮马上熄灭
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"SurgeModeSync" object:nil];
     
     NSString *port = [self getSetting:@"port" fallback:@"1836"];
     NSString *key = [self getSetting:@"key" fallback:@"crctdd"];
@@ -114,9 +128,8 @@
     request.HTTPBody = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
     
     NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        // 请求发送完毕后，清空冷却时间，立刻再拉取一次最新状态进行核对纠错
         self->_lastFetchTime = 0;
-        [self fetchCurrentStateAsynchronously];
+        [self fetchCurrentStateAsynchronously]; // 请求成功后，最后确认一次真实状态
     }];
     [task resume];
 }
